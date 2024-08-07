@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Cat, Heart, Info, Paw, Star } from "lucide-react";
+import { Cat, Heart, Info, Paw, Star, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const fetchCatFact = async () => {
   const response = await fetch("https://catfact.ninja/fact");
@@ -75,11 +76,16 @@ const Index = () => {
           </div>
         </motion.div>
 
-        <div className="flex justify-center mb-8 space-x-4">
+        <motion.div 
+          className="flex justify-center mb-8 space-x-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
           <Button 
             variant="outline" 
             onClick={() => setLikes(likes + 1)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-pink-100 hover:bg-pink-200 transition-colors duration-300"
           >
             <Heart className="h-5 w-5 text-red-500" />
             Like this cat! ({likes})
@@ -87,12 +93,27 @@ const Index = () => {
           <Button
             variant="outline"
             onClick={() => refetchCatFact()}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-purple-100 hover:bg-purple-200 transition-colors duration-300"
           >
             <Paw className="h-5 w-5 text-purple-500" />
             Get Cat Fact
           </Button>
-        </div>
+        </motion.div>
+
+        {likes > 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Alert className="mb-4">
+              <Sparkles className="h-4 w-4" />
+              <AlertDescription>
+                Wow! This cat has been liked {likes} time{likes === 1 ? '' : 's'}!
+              </AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
 
         {catFact && (
           <motion.div
