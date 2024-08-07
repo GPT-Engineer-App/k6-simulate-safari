@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Cat, Heart, Info, Paw, Star, Sparkles } from "lucide-react";
+import { Cat, Heart, Info, Paw, Star, Sparkles, Camera, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 const fetchCatFact = async () => {
   const response = await fetch("https://catfact.ninja/fact");
@@ -13,26 +15,35 @@ const fetchCatFact = async () => {
   return data.fact;
 };
 
+const fetchCatImage = async () => {
+  const response = await fetch("https://api.thecatapi.com/v1/images/search");
+  const data = await response.json();
+  return data[0].url;
+};
+
 const Index = () => {
   const [likes, setLikes] = useState(0);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [catHappiness, setCatHappiness] = useState(50);
   const { data: catFact, refetch: refetchCatFact } = useQuery({
     queryKey: ["catFact"],
     queryFn: fetchCatFact,
   });
-
-  const catImages = [
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg",
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Cat_November_2010-1a.jpg/1200px-Cat_November_2010-1a.jpg",
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Kittyply_edit1.jpg/1200px-Kittyply_edit1.jpg",
-  ];
+  const { data: catImage, refetch: refetchCatImage } = useQuery({
+    queryKey: ["catImage"],
+    queryFn: fetchCatImage,
+  });
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % catImages.length);
-    }, 5000);
+      setCatHappiness((prevHappiness) => Math.max(0, prevHappiness - 5));
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  const handlePet = () => {
+    setCatHappiness((prevHappiness) => Math.min(100, prevHappiness + 10));
+    setLikes((prevLikes) => prevLikes + 1);
+  };
 
   return (
     <div className="min-h-screen p-8 bg-gradient-to-b from-purple-100 to-pink-100">
@@ -50,30 +61,29 @@ const Index = () => {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
-          className="relative"
+          className="relative mb-8"
         >
-          <AnimatePresence mode="wait">
-            <motion.img 
-              key={currentImageIndex}
-              src={catImages[currentImageIndex]}
-              alt="Adorable cat" 
-              className="mx-auto object-cover w-full h-[500px] rounded-lg mb-8 shadow-lg"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-            />
-          </AnimatePresence>
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-            {catImages.map((_, index) => (
-              <div
-                key={index}
-                className={`w-3 h-3 rounded-full ${
-                  index === currentImageIndex ? "bg-white" : "bg-gray-300"
-                }`}
-              />
-            ))}
-          </div>
+          <Carousel className="w-full max-w-xl mx-auto">
+            <CarouselContent>
+              <CarouselItem>
+                <img 
+                  src={catImage || "/placeholder.svg"}
+                  alt="Adorable cat" 
+                  className="mx-auto object-cover w-full h-[500px] rounded-lg shadow-lg"
+                />
+              </CarouselItem>
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute bottom-4 right-4 bg-white/80 hover:bg-white"
+            onClick={() => refetchCatImage()}
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         </motion.div>
 
         <motion.div 
@@ -84,11 +94,11 @@ const Index = () => {
         >
           <Button 
             variant="outline" 
-            onClick={() => setLikes(likes + 1)}
+            onClick={handlePet}
             className="flex items-center gap-2 bg-pink-100 hover:bg-pink-200 transition-colors duration-300"
           >
             <Heart className="h-5 w-5 text-red-500" />
-            Like this cat! ({likes})
+            Pet the cat! ({likes})
           </Button>
           <Button
             variant="outline"
@@ -100,20 +110,15 @@ const Index = () => {
           </Button>
         </motion.div>
 
-        {likes > 0 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Alert className="mb-4">
-              <Sparkles className="h-4 w-4" />
-              <AlertDescription>
-                Wow! This cat has been liked {likes} time{likes === 1 ? '' : 's'}!
-              </AlertDescription>
-            </Alert>
-          </motion.div>
-        )}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <p className="text-center mb-2 font-semibold text-purple-800">Cat Happiness</p>
+          <Progress value={catHappiness} className="w-full" />
+        </motion.div>
 
         {catFact && (
           <motion.div
@@ -130,9 +135,10 @@ const Index = () => {
         )}
 
         <Tabs defaultValue="characteristics" className="mb-8">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="characteristics">Characteristics</TabsTrigger>
             <TabsTrigger value="breeds">Popular Breeds</TabsTrigger>
+            <TabsTrigger value="gallery">Cat Gallery</TabsTrigger>
           </TabsList>
           <TabsContent value="characteristics">
             <Card>
@@ -196,6 +202,39 @@ const Index = () => {
                     </motion.li>
                   ))}
                 </ul>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="gallery">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Camera className="h-6 w-6 text-purple-600" />
+                  Cat Gallery
+                </CardTitle>
+                <CardDescription>Adorable cat pictures from around the web</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {[
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Cat_November_2010-1a.jpg/1200px-Cat_November_2010-1a.jpg",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Kittyply_edit1.jpg/1200px-Kittyply_edit1.jpg",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Sleeping_cat_on_her_back.jpg/1200px-Sleeping_cat_on_her_back.jpg",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Adidas_Superstar_shoes.jpg/1200px-Adidas_Superstar_shoes.jpg",
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9b/Gustav_chocolate.jpg/1200px-Gustav_chocolate.jpg"
+                  ].map((url, index) => (
+                    <motion.img
+                      key={index}
+                      src={url}
+                      alt={`Cat ${index + 1}`}
+                      className="w-full h-40 object-cover rounded-lg shadow-md"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                    />
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
